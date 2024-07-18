@@ -20,13 +20,15 @@ export default function Map({ coords }) {
 
   return (
     <MapContainer
+      className="map-container"
       center={[0, 0]}
       zoom={2}
-      style={{ height: '500px', width: '100%', marginTop: '1rem', backgroundColor: '#ccc' }}
+      style={{ height: '500px', width: '100%', backgroundColor: '#ccc' }}
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        className="map-tiles"
       />
       <Polyline positions={parsedCoords} color="red" />
       <SetBounds coords={coords} />
