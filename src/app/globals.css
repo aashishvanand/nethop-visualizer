@@ -8,7 +8,10 @@
   --input-text: #000000;
   --button-background: #007bff;
   --button-hover-background: #0056b3;
+  --secondary-button-background: #28a745;
+  --secondary-button-hover-background: #218838;
   --map-tiles-filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+  --input-border-color: #ccc;
 }
 
 .dark-mode {
@@ -21,12 +24,16 @@
   --input-text: #ffffff;
   --button-background: #4a4a4a;
   --button-hover-background: #5a5a5a;
+  --secondary-button-background: #2c5282;
+  --secondary-button-hover-background: #2b6cb0;
+  --input-border-color: #555;
 }
 
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
 body {
@@ -35,9 +42,10 @@ body {
       to bottom,
       rgb(var(--background-start-rgb)),
       rgb(var(--background-end-rgb))
-    ) fixed; /* Add 'fixed' here */
+    ) fixed;
   min-height: 100vh;
   transition: background-color 0.3s, color 0.3s;
+  width: 100%;
 }
 
 .container {
@@ -46,7 +54,9 @@ body {
   justify-content: flex-start;
   align-items: center;
   min-height: 100vh;
-  padding-bottom: 2rem; /* Add some padding at the bottom */
+  padding-bottom: 2rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .map-container {
@@ -54,4 +64,11 @@ body {
   height: 500px;
   margin-top: 1rem;
   transition: background-color 0.3s;
+}
+
+/* Media query for smaller screens */
+@media (max-width: 768px) {
+  .map-container {
+    height: 300px; /* Reduce map height on smaller screens */
+  }
 }
