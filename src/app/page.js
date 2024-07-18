@@ -61,57 +61,45 @@ export default function Home() {
   };
 
   const handleMapRoute = async () => {
-    const ipRegex = /(\d{1,3}\.){3}\d{1,3}/g;
-    const ipAddresses = tracerouteOutput.match(ipRegex);
+    const hopRegex = /^\s*(\d+)\s+(?:\*|(\S+)\s+\((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\))\s+/gm;
+    const hops = [...tracerouteOutput.matchAll(hopRegex)];
   
-    if (ipAddresses) {
-      const isPrivateIP = (ip) => {
-        const parts = ip.split('.').map(Number);
-        return (
-          (parts[0] === 10) ||
-          (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
-          (parts[0] === 192 && parts[1] === 168) ||
-          (parts[0] === 127) ||
-          (parts[0] === 0) ||
-          (parts[0] === 169 && parts[1] === 254) ||
-          (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127)
-        );
-      };
-
-      const publicIPs = [...new Set(ipAddresses.filter(ip => !isPrivateIP(ip)))];
+    if (hops.length > 0) {
+      const publicIPs = hops
+        .map(match => match[3])
+        .filter(ip => ip && !isPrivateIP(ip));
   
       if (publicIPs.length === 0) {
         toast.warn('No public IP addresses found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
         return;
       }
-
+  
       try {
         const batchResponse = await ipinfo.getBatch(publicIPs);
   
-        const locations = Object.entries(batchResponse)
-          .map(([ip, info]) => {
-            console.log(`Processing IP: ${ip}, loc: ${info.loc}`);
-            
-            const [lat, lon] = info.loc.split(',').map(Number);
-            
-            if (isNaN(lat) || isNaN(lon)) {
-              console.warn(`Invalid coordinates for IP ${ip}: ${info.loc}`);
-              return null;
-            }
+        const locations = hops.map((hop, index) => {
+          const ip = hop[3];
+          if (ip && batchResponse[ip]) {
+            const info = batchResponse[ip];
             return {
-              ip,
-              loc: [lat, lon],
+              hop: parseInt(hop[1]),
+              ip: ip,
+              loc: info.loc.split(',').map(Number),
               city: info.city,
               region: info.region,
               country: info.country
             };
-          })
-          .filter(location => location !== null);
-  
-        if (locations.length === 0) {
-          toast.warn('No valid location data found for the public IP addresses.', { theme: isDarkMode ? 'dark' : 'light' });
-          return;
-        }
+          } else {
+            return {
+              hop: parseInt(hop[1]),
+              ip: ip || '*',
+              loc: [0, 0], // You might want to use the previous valid location or a placeholder
+              city: 'Unknown',
+              region: 'Unknown',
+              country: 'Unknown'
+            };
+          }
+        }).filter(location => location.loc[0] !== 0 || location.loc[1] !== 0);
   
         setCoords(locations);
         toast.success('Route mapped successfully!', { theme: isDarkMode ? 'dark' : 'light' });
@@ -120,9 +108,9 @@ export default function Home() {
         toast.error('Error fetching IP locations. Please try again later.', { theme: isDarkMode ? 'dark' : 'light' });
       }
     } else {
-      toast.warn('No valid IP addresses found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
+      toast.warn('No valid hops found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
     }
-};
+  };
 
   const getCommand = () => {
     if (hostname.trim() === '') {
