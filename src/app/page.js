@@ -192,7 +192,7 @@ export default function Home() {
         ></textarea>
         <button onClick={handleMapRoute} className={styles.mapRouteButton}>Map Route</button>
       </div>
-      {coords.length > 0 && <Map coords={coords} />}
+      {coords.length > 0 && <Map coords={coords} isDarkMode={isDarkMode} />}
       <ToastContainer />
     </div>
   );
