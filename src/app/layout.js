@@ -11,7 +11,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" data-google-analytics-opt-out="">
       <head>
         <Script id="microsoft-clarity" strategy="afterInteractive">
           {`
