@@ -60,7 +60,28 @@ export default function Home() {
     const ipAddresses = tracerouteOutput.match(ipRegex);
 
     if (ipAddresses) {
-      const batchRequest = ipAddresses.map(ip => `${ip}/loc`);
+      const isPrivateIP = (ip) => {
+        const parts = ip.split('.').map(Number);
+        return (
+          (parts[0] === 10) ||
+          (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+          (parts[0] === 192 && parts[1] === 168) ||
+          (parts[0] === 127) ||
+          (parts[0] === 0) ||
+          (parts[0] === 169 && parts[1] === 254) ||
+          (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127)
+        );
+      };
+  
+      // Filter out private IPs
+      const publicIPs = ipAddresses.filter(ip => !isPrivateIP(ip));
+
+      if (publicIPs.length === 0) {
+      toast.warn('No public IP addresses found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
+      return;
+    }
+
+    const batchRequest = publicIPs.map(ip => `${ip}/loc`);
       
       try {
         const response = await axios.post(
@@ -70,6 +91,8 @@ export default function Home() {
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
+              'Referer': 'https://nethop-visualizer.pages.dev/',
+              'Origin': 'https://nethop-visualizer.pages.dev'
             },
           }
         );
@@ -106,7 +129,7 @@ export default function Home() {
     const command = getCommand();
     if (command) {
       navigator.clipboard.writeText(command);
-      toast.success('Command copied to clipboard!');
+      toast.success('Command copied to clipboard!', { theme: isDarkMode ? 'dark' : 'light' });
     }
   };
 
