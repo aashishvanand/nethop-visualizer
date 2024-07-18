@@ -33,18 +33,10 @@ NetHop Visualizer is an interactive web application that allows users to visuali
    ```
    npm install
    ```
-   or
-   ```
-   yarn install
-   ```
 
 4. Run the development server:
    ```
    npm run dev
-   ```
-   or
-   ```
-   yarn dev
    ```
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
