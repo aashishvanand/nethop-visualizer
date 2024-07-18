@@ -78,8 +78,7 @@ export default function Home() {
           (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127)
         );
       };
-  
-      // Filter out private IPs and remove duplicates
+
       const publicIPs = [...new Set(ipAddresses.filter(ip => !isPrivateIP(ip)))];
   
       if (publicIPs.length === 0) {
@@ -92,12 +91,10 @@ export default function Home() {
   
         const locations = Object.entries(batchResponse)
           .map(([ip, info]) => {
-            // Check and log the loc field
             console.log(`Processing IP: ${ip}, loc: ${info.loc}`);
             
             const [lat, lon] = info.loc.split(',').map(Number);
             
-            // Check if lat and lon are valid numbers
             if (isNaN(lat) || isNaN(lon)) {
               console.warn(`Invalid coordinates for IP ${ip}: ${info.loc}`);
               return null;
@@ -110,7 +107,7 @@ export default function Home() {
               country: info.country
             };
           })
-          .filter(location => location !== null); // Remove invalid locations
+          .filter(location => location !== null);
   
         if (locations.length === 0) {
           toast.warn('No valid location data found for the public IP addresses.', { theme: isDarkMode ? 'dark' : 'light' });
