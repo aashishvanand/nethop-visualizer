@@ -11,6 +11,25 @@ import './globals.css';
 
 const Map = dynamic(() => import('../components/map'), { ssr: false });
 
+const sampleData = ` 1  10.0.0.1 (10.0.0.1)  17.131 ms  3.744 ms  2.689 ms
+ 2  bb116-14-127-252.singnet.com.sg (116.14.127.252)  8.934 ms  4.121 ms  3.549 ms
+ 3  165.21.193.22 (165.21.193.22)  13.077 ms  6.029 ms *
+ 4  165.21.193.21 (165.21.193.21)  8.855 ms  6.973 ms  4.336 ms
+ 5  165.21.138.245 (165.21.138.245)  4.254 ms  4.304 ms *
+ 6  sn-sinqt1-bo403-ae1.singnet.com.sg (165.21.138.85)  5.400 ms  4.966 ms  4.483 ms
+ 7  ip-202-147-32-136.asianetcom.net (202.147.32.136)  73.802 ms  8.191 ms  150.393 ms
+ 8  unknown.telstraglobal.net (210.57.38.115)  4.804 ms  6.726 ms
+    unknown.telstraglobal.net (210.57.38.113)  8.040 ms
+ 9  103.198.140.206 (103.198.140.206)  38.231 ms
+    103.198.140.246 (103.198.140.246)  40.702 ms
+    103.198.140.208 (103.198.140.208)  39.791 ms
+10  49.44.220.8 (49.44.220.8)  39.721 ms
+    103.198.140.183 (103.198.140.183)  37.895 ms
+    103.198.140.185 (103.198.140.185)  41.101 ms
+11  * *115.242.133.202 (115.242.133.202)  41.328 ms
+12  115.242.133.202 (115.242.133.202)  39.785 ms 
+13  * 115.242.133.202 (115.242.133.202)  40.218 ms *`;
+
 export default function Home() {
   const [tracerouteOutput, setTracerouteOutput] = useState('');
   const [coords, setCoords] = useState([]);
@@ -61,10 +80,12 @@ export default function Home() {
   };
 
   const handleMapRoute = async () => {
-    const hopRegex = /^\s*(\d+)\s+(?:\*|(\S+)\s+\((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\))\s+/gm;
+    // This regex will match traceroute lines, including those with '*' and blank lines
+    const hopRegex = /^\s*(\d+)(?:\s+(?:\*|(\S+)\s+\((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\))\s+.*)?$/gm;
     const hops = [...tracerouteOutput.matchAll(hopRegex)];
   
     const isPrivateIP = (ip) => {
+      if (!ip) return true; // Treat undefined or null IPs as private
       const parts = ip.split('.').map(Number);
       return (
         (parts[0] === 10) ||
@@ -90,26 +111,29 @@ export default function Home() {
       try {
         const batchResponse = await ipinfo.getBatch(publicIPs);
   
-        const locations = hops.map((hop, index) => {
+        let lastValidLocation = null;
+        const locations = hops.map((hop) => {
+          const hopNumber = parseInt(hop[1]);
           const ip = hop[3];
           if (ip && batchResponse[ip]) {
             const info = batchResponse[ip];
-            return {
-              hop: parseInt(hop[1]),
+            lastValidLocation = {
+              hop: hopNumber,
               ip: ip,
               loc: info.loc.split(',').map(Number),
               city: info.city,
               region: info.region,
               country: info.country
             };
+            return lastValidLocation;
           } else {
             return {
-              hop: parseInt(hop[1]),
+              hop: hopNumber,
               ip: ip || '*',
-              loc: [0, 0],
-              city: 'Unknown',
-              region: 'Unknown',
-              country: 'Unknown'
+              loc: lastValidLocation ? lastValidLocation.loc : [0, 0],
+              city: lastValidLocation ? lastValidLocation.city : 'Unknown',
+              region: lastValidLocation ? lastValidLocation.region : 'Unknown',
+              country: lastValidLocation ? lastValidLocation.country : 'Unknown'
             };
           }
         }).filter(location => location.loc[0] !== 0 || location.loc[1] !== 0);
@@ -147,6 +171,11 @@ export default function Home() {
       navigator.clipboard.writeText(command);
       toast.success('Command copied to clipboard!', { theme: isDarkMode ? 'dark' : 'light' });
     }
+  };
+
+  const handleSampleData = () => {
+    setTracerouteOutput(sampleData);
+    toast.info('Sample data loaded!', { theme: isDarkMode ? 'dark' : 'light' });
   };
 
   return (
@@ -191,7 +220,10 @@ export default function Home() {
           placeholder="Paste traceroute output here..."
           className={styles.textarea}
         ></textarea>
-        <button onClick={handleMapRoute} className={styles.mapRouteButton}>Map Route</button>
+        <div className={styles.buttonGroup}>
+          <button onClick={handleMapRoute} className={styles.mapRouteButton}>Map Route</button>
+          <button onClick={handleSampleData} className={styles.sampleDataButton}>Load Sample Data</button>
+        </div>
       </div>
       {coords.length > 0 && <Map coords={coords} isDarkMode={isDarkMode} />}
       <ToastContainer />
