@@ -91,14 +91,31 @@ export default function Home() {
         const batchResponse = await ipinfo.getBatch(publicIPs);
   
         const locations = Object.entries(batchResponse)
-          .filter(([_, value]) => value && value.loc)
-          .map(([ip, info]) => ({
-            ip,
-            loc: info.loc.split(',').map(Number),
-            city: info.city,
-            region: info.region,
-            country: info.country
-          }));
+          .map(([ip, info]) => {
+            // Check and log the loc field
+            console.log(`Processing IP: ${ip}, loc: ${info.loc}`);
+            
+            const [lat, lon] = info.loc.split(',').map(Number);
+            
+            // Check if lat and lon are valid numbers
+            if (isNaN(lat) || isNaN(lon)) {
+              console.warn(`Invalid coordinates for IP ${ip}: ${info.loc}`);
+              return null;
+            }
+            return {
+              ip,
+              loc: [lat, lon],
+              city: info.city,
+              region: info.region,
+              country: info.country
+            };
+          })
+          .filter(location => location !== null); // Remove invalid locations
+  
+        if (locations.length === 0) {
+          toast.warn('No valid location data found for the public IP addresses.', { theme: isDarkMode ? 'dark' : 'light' });
+          return;
+        }
   
         setCoords(locations);
         toast.success('Route mapped successfully!', { theme: isDarkMode ? 'dark' : 'light' });
@@ -109,8 +126,7 @@ export default function Home() {
     } else {
       toast.warn('No valid IP addresses found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
     }
-      
-  };
+};
 
   const getCommand = () => {
     if (hostname.trim() === '') {
