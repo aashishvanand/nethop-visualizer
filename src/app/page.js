@@ -179,11 +179,11 @@ export default function Home() {
   };
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${isDarkMode ? 'dark-mode' : ''}`}>
       <div className={styles.header}>
         <h1 className={styles.title}>NetHop Visualizer</h1>
-        <button onClick={toggleTheme} className={styles.themeSwitch}>
-          {isDarkMode ? <MdOutlineLightMode /> : <MdOutlineDarkMode />}
+        <button onClick={toggleTheme} className={styles.themeSwitch} aria-label="Toggle theme">
+          {isDarkMode ? <MdOutlineLightMode size={24} /> : <MdOutlineDarkMode size={24} />}
         </button>
       </div>
       <div className={styles.step}>
