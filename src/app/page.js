@@ -41,12 +41,11 @@ export default function Home() {
       if (platform.includes('mac')) return 'Mac';
       if (platform.includes('linux')) return 'Linux';
       
-      // Additional checks using userAgent
       if (userAgent.includes('win')) return 'Windows';
       if (userAgent.includes('mac')) return 'Mac';
       if (userAgent.includes('linux')) return 'Linux';
 
-      return 'Linux'; // Default to Linux if unable to detect
+      return 'Linux';
     };
 
     setOs(detectOS());
