@@ -1,6 +1,6 @@
 'use client';
 
-import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 function SetBounds({ coords }) {
@@ -13,9 +13,9 @@ function SetBounds({ coords }) {
 }
 
 export default function Map({ coords }) {
-  const parsedCoords = coords.map((coord, index) => {
+  const parsedCoords = coords.map(coord => {
     const [lat, lon] = coord.loc;
-    return { lat: parseFloat(lat), lon: parseFloat(lon), hop: index + 1 };
+    return [parseFloat(lat), parseFloat(lon)];
   });
 
   return (
@@ -26,21 +26,11 @@ export default function Map({ coords }) {
       style={{ height: '500px', width: '100%', backgroundColor: '#ccc' }}
     >
       <TileLayer
-        url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        className="map-tiles"
       />
-      <Polyline positions={parsedCoords.map(coord => [coord.lat, coord.lon])} color="red" />
-      {parsedCoords.map((coord, index) => (
-        <Marker key={index} position={[coord.lat, coord.lon]}>
-          <Popup>
-            <div>
-              <span className="caption">Hop {coord.hop}</span>
-              <hr />
-              <span>{coord.lat}, {coord.lon}</span>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+      <Polyline positions={parsedCoords} color="red" />
       <SetBounds coords={coords} />
     </MapContainer>
   );
