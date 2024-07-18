@@ -64,7 +64,7 @@ export default function Home() {
       
       try {
         const response = await axios.post(
-          'https://ipinfo.io/batch?token=5886e32e75537e',
+          'https://ipinfo.io/batch?token=306556f9be88bf',
           batchRequest,
           {
             headers: {
