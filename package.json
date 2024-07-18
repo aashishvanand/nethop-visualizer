@@ -1,7 +1,7 @@
 {
-  "name": "traceroute-mapper",
+  "name": "nethop-visualizer",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,12 +9,23 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "axios": "^1.7.2",
+    "leaflet": "^1.9.4",
+    "next": "^14.2.5",
     "react": "^18",
     "react-dom": "^18",
-    "next": "14.2.5"
+    "react-icons": "^5.2.1",
+    "react-leaflet": "^4.2.1",
+    "react-toastify": "^10.0.5"
   },
   "devDependencies": {
     "eslint": "^8",
     "eslint-config-next": "14.2.5"
+  },
+  "author": "Aashish Vivekanand",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aashishvanand/nethop-visualizer.git"
   }
 }
