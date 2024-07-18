@@ -35,7 +35,8 @@ body {
       to bottom,
       rgb(var(--background-start-rgb)),
       rgb(var(--background-end-rgb))
-    );
+    ) fixed; /* Add 'fixed' here */
+  min-height: 100vh;
   transition: background-color 0.3s, color 0.3s;
 }
 
@@ -45,6 +46,7 @@ body {
   justify-content: flex-start;
   align-items: center;
   min-height: 100vh;
+  padding-bottom: 2rem; /* Add some padding at the bottom */
 }
 
 .map-container {
