@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { MdOutlineLightMode, MdOutlineDarkMode } from 'react-icons/md';
+import { IPinfoWrapper, LruCache } from "node-ipinfo";
 import styles from './page.module.css';
 import './globals.css';
 
@@ -17,6 +18,12 @@ export default function Home() {
   const [hostname, setHostname] = useState('');
   const [os, setOs] = useState('Linux');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const cacheOptions = {
+    max: 5000,
+    ttl: 24 * 1000 * 60 * 60,
+  };
+  const cache = new LruCache(cacheOptions);
+  const ipinfo = new IPinfoWrapper("306556f9be88bf", cache);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -58,7 +65,7 @@ export default function Home() {
   const handleMapRoute = async () => {
     const ipRegex = /(\d{1,3}\.){3}\d{1,3}/g;
     const ipAddresses = tracerouteOutput.match(ipRegex);
-
+  
     if (ipAddresses) {
       const isPrivateIP = (ip) => {
         const parts = ip.split('.').map(Number);
@@ -73,31 +80,27 @@ export default function Home() {
         );
       };
   
-      // Filter out private IPs
-      const publicIPs = ipAddresses.filter(ip => !isPrivateIP(ip));
-
+      // Filter out private IPs and remove duplicates
+      const publicIPs = [...new Set(ipAddresses.filter(ip => !isPrivateIP(ip)))];
+  
       if (publicIPs.length === 0) {
-      toast.warn('No public IP addresses found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
-      return;
-    }
+        toast.warn('No public IP addresses found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
+        return;
+      }
 
-    const batchRequest = publicIPs.map(ip => `${ip}/loc`);
-      
       try {
-        const response = await axios.post(
-          'https://ipinfo.io/batch?token=306556f9be88bf',
-          batchRequest,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        const locations = Object.entries(response.data)
-        .filter(([_, value]) => typeof value === 'string')
-        .map(([ip, loc]) => ({ip, loc: loc.split(',')}));
-      
+        const batchResponse = await ipinfo.getBatch(publicIPs);
+  
+        const locations = Object.entries(batchResponse)
+          .filter(([_, value]) => value && value.loc)
+          .map(([ip, info]) => ({
+            ip,
+            loc: info.loc.split(',').map(Number),
+            city: info.city,
+            region: info.region,
+            country: info.country
+          }));
+  
         setCoords(locations);
         toast.success('Route mapped successfully!', { theme: isDarkMode ? 'dark' : 'light' });
       } catch (error) {
@@ -107,6 +110,7 @@ export default function Home() {
     } else {
       toast.warn('No valid IP addresses found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
     }
+      
   };
 
   const getCommand = () => {
