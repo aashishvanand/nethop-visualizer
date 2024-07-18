@@ -64,6 +64,19 @@ export default function Home() {
     const hopRegex = /^\s*(\d+)\s+(?:\*|(\S+)\s+\((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\))\s+/gm;
     const hops = [...tracerouteOutput.matchAll(hopRegex)];
   
+    const isPrivateIP = (ip) => {
+      const parts = ip.split('.').map(Number);
+      return (
+        (parts[0] === 10) ||
+        (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+        (parts[0] === 192 && parts[1] === 168) ||
+        (parts[0] === 127) ||
+        (parts[0] === 0) ||
+        (parts[0] === 169 && parts[1] === 254) ||
+        (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127)
+      );
+    };
+  
     if (hops.length > 0) {
       const publicIPs = hops
         .map(match => match[3])
@@ -93,7 +106,7 @@ export default function Home() {
             return {
               hop: parseInt(hop[1]),
               ip: ip || '*',
-              loc: [0, 0], // You might want to use the previous valid location or a placeholder
+              loc: [0, 0],
               city: 'Unknown',
               region: 'Unknown',
               country: 'Unknown'
