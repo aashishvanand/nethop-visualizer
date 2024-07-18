@@ -106,7 +106,7 @@ export default function Home() {
     const command = getCommand();
     if (command) {
       navigator.clipboard.writeText(command);
-      toast.success('Command copied to clipboard!');
+      toast.success('Command copied to clipboard!', { theme: isDarkMode ? 'dark' : 'light' });
     }
   };
 
