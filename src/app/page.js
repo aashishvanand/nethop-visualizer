@@ -87,27 +87,28 @@ export default function Home() {
 
       try {
         const batchResponse = await ipinfo.getBatch(publicIPs);
+        const ipToDetailsMap = new Map();
   
-        const locations = Object.entries(batchResponse)
-          .map(([ip, info]) => {
-            console.log(`Processing IP: ${ip}, loc: ${info.loc}`);
-            
+        for (const [ip, info] of Object.entries(batchResponse)) {
+          if (info && info.loc) {
             const [lat, lon] = info.loc.split(',').map(Number);
-            
-            if (isNaN(lat) || isNaN(lon)) {
-              console.warn(`Invalid coordinates for IP ${ip}: ${info.loc}`);
-              return null;
+            if (!isNaN(lat) && !isNaN(lon)) {
+              ipToDetailsMap.set(ip, {
+                ip,
+                loc: [lat, lon],
+                city: info.city,
+                region: info.region,
+                country: info.country
+              });
             }
-            return {
-              ip,
-              loc: [lat, lon],
-              city: info.city,
-              region: info.region,
-              country: info.country
-            };
-          })
-          .filter(location => location !== null);
-  
+          }
+        }
+
+        const locations = publicIPs.map((ip, index) => {
+          const details = ipToDetailsMap.get(ip);
+          return details ? { ...details, hop: index + 1 } : null;
+        }).filter(location => location !== null);
+
         if (locations.length === 0) {
           toast.warn('No valid location data found for the public IP addresses.', { theme: isDarkMode ? 'dark' : 'light' });
           return;
