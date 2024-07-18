@@ -90,14 +90,14 @@ export default function Home() {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Referer': 'https://nethop-visualizer.pages.dev/',
-              'Origin': 'https://nethop-visualizer.pages.dev'
             },
           }
         );
 
-        const locations = Object.values(response.data).map(loc => loc.split(','));
+        const locations = Object.entries(response.data)
+        .filter(([_, value]) => typeof value === 'string')
+        .map(([ip, loc]) => ({ip, loc: loc.split(',')}));
+      
         setCoords(locations);
         toast.success('Route mapped successfully!', { theme: isDarkMode ? 'dark' : 'light' });
       } catch (error) {
