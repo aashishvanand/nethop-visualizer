@@ -13,6 +13,23 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" data-google-analytics-opt-out="">
       <head>
+      <meta property="og:title" content="NetHop Visualizer - Traceroute Mapping Tool" />
+      <meta property="og:description" content="Visualize your network's path with NetHop Visualizer. An interactive tool for mapping traceroute results and understanding network topology." />
+      <meta property="og:url" content="https://nethop-visualizer.aashishvanand.me/" />
+      <meta property="og:type" content="website" />
+      <script type="application/ld+json">
+        {`
+          {
+            "@context": "http://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "NetHop Visualizer",
+            "description": "An interactive web application for mapping traceroute results.",
+            "url": "https://nethop-visualizer.aashishvanand.me/",
+            "applicationCategory": "Utility",
+            "operatingSystem": "All"
+          }
+        `}
+      </script>
         <Script id="microsoft-clarity" strategy="afterInteractive">
           {`
             (function(c,l,a,r,i,t,y){
