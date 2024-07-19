@@ -35,7 +35,16 @@ export default function Home() {
   const [coords, setCoords] = useState([]);
   const [hostname, setHostname] = useState('');
   const [os, setOs] = useState('Linux');
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const isBrowser = () => typeof window !== 'undefined';
+
+const [isDarkMode, setIsDarkMode] = useState(() => {
+  // Check if running in a browser environment before accessing localStorage
+  if (isBrowser()) {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  return false; // Default value if not running in browser
+});
   const turnstileRef = useRef(null);
   const cacheOptions = {
     max: 5000,
@@ -45,41 +54,26 @@ export default function Home() {
   const ipinfo = new IPinfoWrapper("306556f9be88bf", cache);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      setIsDarkMode(savedTheme === 'dark');
-    } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDarkMode(prefersDark);
-    }
-
+    document.body.classList.toggle('dark-mode', isDarkMode);
+  
     const detectOS = () => {
       const platform = navigator.platform.toLowerCase();
       const userAgent = navigator.userAgent.toLowerCase();
-
-      if (platform.includes('win')) return 'Windows';
-      if (platform.includes('mac')) return 'Mac';
-      if (platform.includes('linux')) return 'Linux';
-      
-      if (userAgent.includes('win')) return 'Windows';
-      if (userAgent.includes('mac')) return 'Mac';
-      if (userAgent.includes('linux')) return 'Linux';
-
+      if (platform.includes('win') || userAgent.includes('win')) return 'Windows';
+      if (platform.includes('mac') || userAgent.includes('mac')) return 'Mac';
+      if (platform.includes('linux') || userAgent.includes('linux')) return 'Linux';
       return 'Linux';
     };
-
+  
     setOs(detectOS());
-
+  
     const renderTurnstile = () => {
       if (turnstileRef.current) {
         window.turnstile.remove(turnstileRef.current);
       }
       turnstileRef.current = window.turnstile.render('#turnstile-container', {
         sitekey: process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY,
-        theme: isDarkMode ? 'dark' : 'light',
-        callback: function(token) {
-          console.log("Turnstile token:", token);
-        }
+        theme: isDarkMode ? 'dark' : 'light'
       });
     };
 
@@ -89,24 +83,22 @@ export default function Home() {
       script.async = true;
       script.defer = true;
       document.body.appendChild(script);
-
       script.onload = renderTurnstile;
     } else {
       renderTurnstile();
     }
-
+  
     return () => {
       if (turnstileRef.current) {
         window.turnstile.remove(turnstileRef.current);
       }
     };
   }, [isDarkMode]);
-
+  
   useEffect(() => {
-    document.body.classList.toggle('dark-mode', isDarkMode);
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
-
+  
   const toggleTheme = () => {
     setIsDarkMode(prev => !prev);
   };
@@ -225,9 +217,9 @@ export default function Home() {
     }
 
     if (os === 'Linux') {
-      return `traceroute -I -q1 ${hostname} | xclip -sel clip`;
+      return `traceroute -I ${hostname} | xclip -sel clip`;
     } else if (os === 'Mac') {
-      return `traceroute -I -q1 ${hostname} | pbcopy`;
+      return `traceroute -I ${hostname} | pbcopy`;
     } else if (os === 'Windows') {
       return `tracert ${hostname} | clip`;
     }
