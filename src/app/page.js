@@ -73,6 +73,27 @@ export default function Home() {
   useEffect(() => {
     document.body.classList.toggle('dark-mode', isDarkMode);
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+
+    script.onload = () => {
+      window.turnstile.render('#turnstile-container', {
+        sitekey: process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY,
+        theme: isDarkMode ? 'dark' : 'light',
+        callback: function(token) {
+          console.log("Turnstile token:", token);
+          // You can store the token in state here if needed
+        }
+      });
+    };
+
+    return () => {
+      document.body.removeChild(script);
+    };
   }, [isDarkMode]);
 
   const toggleTheme = () => {
@@ -80,72 +101,109 @@ export default function Home() {
   };
 
   const handleMapRoute = async () => {
-    // This regex will match traceroute lines, including those with '*' and blank lines
-    const hopRegex = /^\s*(\d+)(?:\s+(?:\*|(\S+)\s+\((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\))\s+.*)?$/gm;
-    const hops = [...tracerouteOutput.matchAll(hopRegex)];
+    if (!window.turnstile) {
+      toast.error('CAPTCHA is not initialized. Please refresh the page.', { theme: isDarkMode ? 'dark' : 'light' });
+      return;
+    }
   
-    const isPrivateIP = (ip) => {
-      if (!ip) return true; // Treat undefined or null IPs as private
-      const parts = ip.split('.').map(Number);
-      return (
-        (parts[0] === 10) ||
-        (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
-        (parts[0] === 192 && parts[1] === 168) ||
-        (parts[0] === 127) ||
-        (parts[0] === 0) ||
-        (parts[0] === 169 && parts[1] === 254) ||
-        (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127)
-      );
-    };
+    const token = window.turnstile.getResponse('#turnstile-container');
+    if (!token) {
+      toast.warn('Please complete the CAPTCHA challenge.', { theme: isDarkMode ? 'dark' : 'light' });
+      return;
+    }
   
-    if (hops.length > 0) {
-      const publicIPs = hops
-        .map(match => match[3])
-        .filter(ip => ip && !isPrivateIP(ip));
-  
-      if (publicIPs.length === 0) {
-        toast.warn('No public IP addresses found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
+    try {
+      const verificationResponse = await fetch('https://nethopvisualizerbackend.aashishvanand.me/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token })
+      });
+
+      if (!verificationResponse.ok) {
+        throw new Error(`HTTP error! status: ${verificationResponse.status}`);
+      }
+      
+      const verificationResult = await verificationResponse.json();
+      if (!verificationResult.verified) {
+        toast.error('CAPTCHA verification failed. Please try again.', { theme: isDarkMode ? 'dark' : 'light' });
+        window.turnstile.reset('#turnstile-container');
         return;
       }
+      const hopRegex = /^\s*(\d+)(?:\s+(?:\*|(\S+)\s+\((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\))\s+.*)?$/gm;
+      const hops = [...tracerouteOutput.matchAll(hopRegex)];
   
-      try {
-        const batchResponse = await ipinfo.getBatch(publicIPs);
-  
-        let lastValidLocation = null;
-        const locations = hops.map((hop) => {
-          const hopNumber = parseInt(hop[1]);
-          const ip = hop[3];
-          if (ip && batchResponse[ip]) {
-            const info = batchResponse[ip];
-            lastValidLocation = {
-              hop: hopNumber,
-              ip: ip,
-              loc: info.loc.split(',').map(Number),
-              city: info.city,
-              region: info.region,
-              country: info.country
-            };
-            return lastValidLocation;
-          } else {
-            return {
-              hop: hopNumber,
-              ip: ip || '*',
-              loc: lastValidLocation ? lastValidLocation.loc : [0, 0],
-              city: lastValidLocation ? lastValidLocation.city : 'Unknown',
-              region: lastValidLocation ? lastValidLocation.region : 'Unknown',
-              country: lastValidLocation ? lastValidLocation.country : 'Unknown'
-            };
-          }
-        }).filter(location => location.loc[0] !== 0 || location.loc[1] !== 0);
-  
-        setCoords(locations);
-        toast.success('Route mapped successfully!', { theme: isDarkMode ? 'dark' : 'light' });
-      } catch (error) {
-        console.error('Error fetching IP locations:', error);
-        toast.error('Error fetching IP locations. Please try again later.', { theme: isDarkMode ? 'dark' : 'light' });
+      const isPrivateIP = (ip) => {
+        if (!ip) return true; // Treat undefined or null IPs as private
+        const parts = ip.split('.').map(Number);
+        return (
+          (parts[0] === 10) ||
+          (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+          (parts[0] === 192 && parts[1] === 168) ||
+          (parts[0] === 127) ||
+          (parts[0] === 0) ||
+          (parts[0] === 169 && parts[1] === 254) ||
+          (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127)
+        );
+      };
+    
+      if (hops.length > 0) {
+        const publicIPs = hops
+          .map(match => match[3])
+          .filter(ip => ip && !isPrivateIP(ip));
+    
+        if (publicIPs.length === 0) {
+          toast.warn('No public IP addresses found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
+          return;
+        }
+    
+        try {
+          const batchResponse = await ipinfo.getBatch(publicIPs);
+    
+          let lastValidLocation = null;
+          const locations = hops.map((hop) => {
+            const hopNumber = parseInt(hop[1]);
+            const ip = hop[3];
+            if (ip && batchResponse[ip]) {
+              const info = batchResponse[ip];
+              lastValidLocation = {
+                hop: hopNumber,
+                ip: ip,
+                loc: info.loc.split(',').map(Number),
+                city: info.city,
+                region: info.region,
+                country: info.country
+              };
+              return lastValidLocation;
+            } else {
+              return {
+                hop: hopNumber,
+                ip: ip || '*',
+                loc: lastValidLocation ? lastValidLocation.loc : [0, 0],
+                city: lastValidLocation ? lastValidLocation.city : 'Unknown',
+                region: lastValidLocation ? lastValidLocation.region : 'Unknown',
+                country: lastValidLocation ? lastValidLocation.country : 'Unknown'
+              };
+            }
+          }).filter(location => location.loc[0] !== 0 || location.loc[1] !== 0);
+    
+          setCoords(locations);
+          toast.success('Route mapped successfully!', { theme: isDarkMode ? 'dark' : 'light' });
+        } catch (error) {
+          console.error('Error fetching IP locations:', error);
+          toast.error('Error fetching IP locations. Please try again later.', { theme: isDarkMode ? 'dark' : 'light' });
+        }
+      } else {
+        toast.warn('No valid hops found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
       }
-    } else {
-      toast.warn('No valid hops found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
+
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(`An error occurred: ${error.message}. Please try again.`, { theme: isDarkMode ? 'dark' : 'light' });
+    } finally {
+      // Reset the Turnstile widget after verification attempt
+      window.turnstile.reset('#turnstile-container');
     }
   };
 
@@ -221,6 +279,7 @@ export default function Home() {
           className={styles.textarea}
         ></textarea>
         <div className={styles.buttonGroup}>
+        <div id="turnstile-container" style={{ marginBottom: '20px' }}></div>
           <button onClick={handleMapRoute} className={styles.mapRouteButton}>Map Route</button>
           <button onClick={handleSampleData} className={styles.sampleDataButton}>Load Sample Data</button>
         </div>
