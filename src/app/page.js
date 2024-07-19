@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -36,6 +36,7 @@ export default function Home() {
   const [hostname, setHostname] = useState('');
   const [os, setOs] = useState('Linux');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const turnstileRef = useRef(null);
   const cacheOptions = {
     max: 5000,
     ttl: 24 * 1000 * 60 * 60,
@@ -68,32 +69,42 @@ export default function Home() {
     };
 
     setOs(detectOS());
-  }, []);
 
-  useEffect(() => {
-    document.body.classList.toggle('dark-mode', isDarkMode);
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-    script.async = true;
-    script.defer = true;
-    document.body.appendChild(script);
-
-    script.onload = () => {
-      window.turnstile.render('#turnstile-container', {
+    const renderTurnstile = () => {
+      if (turnstileRef.current) {
+        window.turnstile.remove(turnstileRef.current);
+      }
+      turnstileRef.current = window.turnstile.render('#turnstile-container', {
         sitekey: process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY,
         theme: isDarkMode ? 'dark' : 'light',
         callback: function(token) {
           console.log("Turnstile token:", token);
-          // You can store the token in state here if needed
         }
       });
     };
 
+    if (!window.turnstile) {
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.defer = true;
+      document.body.appendChild(script);
+
+      script.onload = renderTurnstile;
+    } else {
+      renderTurnstile();
+    }
+
     return () => {
-      document.body.removeChild(script);
+      if (turnstileRef.current) {
+        window.turnstile.remove(turnstileRef.current);
+      }
     };
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    document.body.classList.toggle('dark-mode', isDarkMode);
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
   const toggleTheme = () => {
@@ -106,7 +117,7 @@ export default function Home() {
       return;
     }
   
-    const token = window.turnstile.getResponse('#turnstile-container');
+    const token = window.turnstile.getResponse(turnstileRef.current);
     if (!token) {
       toast.warn('Please complete the CAPTCHA challenge.', { theme: isDarkMode ? 'dark' : 'light' });
       return;
@@ -124,7 +135,7 @@ export default function Home() {
       if (!verificationResponse.ok) {
         throw new Error(`HTTP error! status: ${verificationResponse.status}`);
       }
-      
+
       const verificationResult = await verificationResponse.json();
       if (!verificationResult.verified) {
         toast.error('CAPTCHA verification failed. Please try again.', { theme: isDarkMode ? 'dark' : 'light' });
