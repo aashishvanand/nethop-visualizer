@@ -225,9 +225,9 @@ export default function Home() {
     }
 
     if (os === 'Linux') {
-      return `traceroute -I -q1 ${hostname} | xclip -sel clip`;
+      return `traceroute -I ${hostname} | xclip -sel clip`;
     } else if (os === 'Mac') {
-      return `traceroute -I -q1 ${hostname} | pbcopy`;
+      return `traceroute -I ${hostname} | pbcopy`;
     } else if (os === 'Windows') {
       return `tracert ${hostname} | clip`;
     }
