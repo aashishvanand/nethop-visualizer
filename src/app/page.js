@@ -35,10 +35,16 @@ export default function Home() {
   const [coords, setCoords] = useState([]);
   const [hostname, setHostname] = useState('');
   const [os, setOs] = useState('Linux');
-  const [isDarkMode, setIsDarkMode] = useState(() => {
+  const isBrowser = () => typeof window !== 'undefined';
+
+const [isDarkMode, setIsDarkMode] = useState(() => {
+  // Check if running in a browser environment before accessing localStorage
+  if (isBrowser()) {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
+  }
+  return false; // Default value if not running in browser
+});
   const turnstileRef = useRef(null);
   const cacheOptions = {
     max: 5000,
