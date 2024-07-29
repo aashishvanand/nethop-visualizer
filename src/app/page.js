@@ -38,7 +38,6 @@ export default function Home() {
   const isBrowser = () => typeof window !== 'undefined';
 
 const [isDarkMode, setIsDarkMode] = useState(() => {
-  // Check if running in a browser environment before accessing localStorage
   if (isBrowser()) {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -138,7 +137,7 @@ const [isDarkMode, setIsDarkMode] = useState(() => {
       const hops = [...tracerouteOutput.matchAll(hopRegex)];
   
       const isPrivateIP = (ip) => {
-        if (!ip) return true; // Treat undefined or null IPs as private
+        if (!ip) return true;
         const parts = ip.split('.').map(Number);
         return (
           (parts[0] === 10) ||
@@ -195,7 +194,14 @@ const [isDarkMode, setIsDarkMode] = useState(() => {
           toast.success('Route mapped successfully!', { theme: isDarkMode ? 'dark' : 'light' });
         } catch (error) {
           console.error('Error fetching IP locations:', error);
-          toast.error('Error fetching IP locations. Please try again later.', { theme: isDarkMode ? 'dark' : 'light' });
+          if (error.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+            toast.error(
+              'The request to fetch IP information was blocked. This might be caused by an ad-blocker or privacy extension. Please disable it for this site and try again.',
+              { theme: isDarkMode ? 'dark' : 'light' }
+            );
+          } else {
+            toast.error('Error fetching IP locations. Please try again later.', { theme: isDarkMode ? 'dark' : 'light' });
+          }
         }
       } else {
         toast.warn('No valid hops found in the traceroute output.', { theme: isDarkMode ? 'dark' : 'light' });
@@ -203,9 +209,15 @@ const [isDarkMode, setIsDarkMode] = useState(() => {
 
     } catch (error) {
       console.error('Error:', error);
-      toast.error(`An error occurred: ${error.message}. Please try again.`, { theme: isDarkMode ? 'dark' : 'light' });
+      if (error.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+        toast.error(
+          'The request was blocked. This might be caused by an ad-blocker or privacy extension. Please disable it for this site and try again.',
+          { theme: isDarkMode ? 'dark' : 'light' }
+        );
+      } else {
+        toast.error(`An error occurred: ${error.message}. Please try again.`, { theme: isDarkMode ? 'dark' : 'light' });
+      }
     } finally {
-      // Reset the Turnstile widget after verification attempt
       window.turnstile.reset('#turnstile-container');
     }
   };
