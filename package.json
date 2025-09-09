@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "leaflet": "^1.9.4",
-    "next": "^14.2.30",
+    "next": "^14.2.32",
     "node-ipinfo": "^3.5.1",
     "react": "^18",
     "react-dom": "^18",
